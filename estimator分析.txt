@@ -1,0 +1,13 @@
+1、kitti_odom_test读取图片信息，处理成cv::Mat格式后输入给estimator.inputImage(); 
+2、estimator.inputImage()函数收到图像后，调用featureTracker.trackImage()函数生成每帧的特征点
+3、然后调用processMeasurement()函数
+4、在processMeasurement()函数中调用processImage()函数,然后打印输出所有结果
+
+所以核心的要修改的深度部分应该在processImage()函数中或者它调用的函数中。
+
+在processImage()函数中：
+1、先后调用f_manager.initFramePoseByPnP()和f_manager.triangulate()和optimaztion()函数初始化
+2、当进入的帧的数量达到了滑窗窗口的大小后,先后调用optimization();updateLatestStates();slideWindow();函数完成初始化,如果滑窗没有满，继续填充
+3、如果初始化已经是完成的情况，那么依然是先后调用f_manager.initFramePoseByPnP()和f_manager.triangulate()和optimization()函数,并且调用outliersRejection()和f_manager.removeOutlier()和featureTracker.removeOutliers排除离群点，然后调用predictPtsInNextFrame()预测点在下一帧的位姿，然后调用slideWindow()执行滑窗，并且更新滑窗的状态。
+
+可以确定，是在triangulate()函数中的387行执行赋予深度的操作，

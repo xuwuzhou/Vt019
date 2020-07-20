@@ -1,0 +1,26 @@
+<launch>
+    
+    <param name="scan_line" type="int" value="64" />
+    <param name="RESULT_PATH" type="string" value="/home/xuwuzhou/catkin_vins/test.txt" />
+
+    <!-- if 1, do mapping 10 Hz, if 2, do mapping 5 Hz. Suggest to use 1, it will adjust frequence automaticlly -->
+    <param name="mapping_skip_frame" type="int" value="1" />
+
+    <!-- remove too closed points -->
+    <param name="minimum_range" type="double" value="5"/>
+
+
+    <param name="mapping_line_resolution" type="double" value="0.4"/>
+    <param name="mapping_plane_resolution" type="double" value="0.8"/>
+
+    <node pkg="vins" type="ascanRegistration" name="ascanRegistration" output="screen" />
+
+    <node pkg="vins" type="alaserOdometry" name="alaserOdometry" output="screen" />
+
+    <node pkg="vins" type="alaserMapping" name="alaserMapping" output="screen" />
+
+    <node pkg="vins" type="processDepthmap" name="processDepthmap" output="screen" />
+    
+    <node pkg="vins" type="kitti_odom_test" name="vins_estimator" args="/home/xuwuzhou/catkin_vins/src/VINS-Fusion/config/kitti_odom/kitti_config04-12.yaml" output="screen" />
+
+</launch>
