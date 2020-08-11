@@ -25,7 +25,7 @@ double voTy[keepVoDataNum] = {0};
 double voTz[keepVoDataNum] = {0};
 int voDataInd = -1;
 int voRegInd = 0;
-
+	
 pcl::PointCloud<pcl::PointXYZI>::Ptr depthCloud(new pcl::PointCloud<pcl::PointXYZI>());
 pcl::PointCloud<pcl::PointXYZ>::Ptr syncCloud(new pcl::PointCloud<pcl::PointXYZ>());
 pcl::PointCloud<pcl::PointXYZI>::Ptr tempCloud(new pcl::PointCloud<pcl::PointXYZI>());
@@ -51,9 +51,9 @@ void voDataHandler(const nav_msgs::Odometry::ConstPtr& voData)
 	geometry_msgs::Quaternion geoQuat = voData->pose.pose.orientation;
 	tf::Matrix3x3(tf::Quaternion(geoQuat.z,-geoQuat.x,-geoQuat.y,geoQuat.w)).getRPY(roll,pitch,yaw);
 	//求出本帧和上一帧每一项的差值
-	double rx = voData->twist.twist.angular.x-rxRec;
-	double ry = voData->twist.twist.angular.y-ryRec;
-	double rz = voData->twist.twist.angular.z-rzRec;
+	double rx = roll-rxRec;
+	double ry = pitch-ryRec;
+	double rz = yaw-rzRec;
 
 	if(ry< -PI){
 	ry =ry+2*PI;	
@@ -65,9 +65,9 @@ void voDataHandler(const nav_msgs::Odometry::ConstPtr& voData)
 	double ty = voData->pose.pose.position.y-tyRec;
 	double tz = voData->pose.pose.position.z-tzRec;
 
-	rxRec = voData->twist.twist.angular.x;
-	ryRec = voData->twist.twist.angular.y;
-	rzRec = voData->twist.twist.angular.z;
+	rxRec = roll;
+	ryRec = pitch;
+	rzRec = yaw;
 
 	txRec = voData->pose.pose.position.x;
 	tyRec = voData->pose.pose.position.y;
@@ -109,6 +109,8 @@ void voDataHandler(const nav_msgs::Odometry::ConstPtr& voData)
 	tempCloud->clear();
 	double x1,y1,z1,x2,y2,z2;
 	int depthCloudNum = depthCloud->points.size();
+	int numpoints = 0;//记录最终加入深度图点的个数
+	printf("即将参与运算的激光点云点的数量为%d\n",depthCloudNum);
 	for(int i = 0;i<depthCloudNum;i++){
 	point = depthCloud->points[i];
 	
@@ -126,17 +128,18 @@ void voDataHandler(const nav_msgs::Odometry::ConstPtr& voData)
 
 	double pointDis = sqrt(point.x *point.x +point.y*point.y+point.z*point.z);
 	double timeDis = time -initTime- point.intensity;
-	if(fabs(point.x/point.z)<2&&fabs(point.y/point.z)<1&&point.z>0.5&&pointDis<15&&timeDis<5.0){
+	if(pointDis<15){
 	tempCloud->push_back(point);	
 	}
 	}	
+	printf("这一帧深度图点云中加入了%d个点\n",numpoints);
 	depthCloud->clear();
 	pcl::VoxelGrid<pcl::PointXYZI> downSizeFilter;
 	downSizeFilter.setInputCloud(tempCloud);
 	downSizeFilter.setLeafSize(0.05,0.05,0.05);
 	downSizeFilter.filter(*depthCloud);
 	depthCloudNum = depthCloud->points.size();
-
+	printf("深度图经过滤波后，点还剩%d个\n",depthCloud->points.size());
 	tempCloud->clear();
 	for(int i=0;i<depthCloudNum;i++){
 	point = depthCloud->points[i];
@@ -164,7 +167,7 @@ void voDataHandler(const nav_msgs::Odometry::ConstPtr& voData)
 	tempCloud2->points[i].intensity = 10;
 
  	}
-
+	printf("最后输出的深度图的点个数%d",tempCloud2->size());
 	sensor_msgs::PointCloud2 depthCloud2;
 	pcl::toROSMsg(*tempCloud2,depthCloud2);
 	depthCloud2.header.frame_id = "camera2";
@@ -282,7 +285,7 @@ void syncCloudHandler(const sensor_msgs::PointCloud2ConstPtr& syncCloud2)
 	}	
 	}
 	double pointDis = sqrt(point.x*point.x+point.y*point.y+point.z*point.z);
-	if(fabs(point.x/point.z) < 2 &&fabs(point.y/point.z)<1.5 && point.z>0.5 &&pointDis <15){
+	if(pointDis <15){
 	depthCloud->push_back(point);	
 	}
 	}

@@ -26,20 +26,17 @@ find_package(OpenCV REQUIRED)
 
 find_package(Ceres REQUIRED)
 
-include_directories(${catkin_INCLUDE_DIRS} ${CERES_INCLUDE_DIRS} ${PCL_INCLUDE_DIRS} ${OpenCV_INCLUDE_DIRS})
+include_directories(${catkin_INCLUDE_DIRS} ${CERES_INCLUDE_DIRS})
 
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 find_package(Eigen3)
 include_directories(
   ${catkin_INCLUDE_DIRS}
   ${EIGEN3_INCLUDE_DIR}
+  ${PCL_INCLUDE_DIRS}
 )
 
-catkin_package(
-  CATKIN_DEPENDS geometry_msgs nav_msgs roscpp rospy std_msgs
-  DEPENDS EIGEN3 PCL 
-  INCLUDE_DIRS include
-)
+catkin_package()
 
 add_library(vins_lib
     src/estimator/parameters.cpp
@@ -58,7 +55,7 @@ add_library(vins_lib
     src/initial/initial_sfm.cpp
     src/initial/initial_ex_rotation.cpp
     src/featureTracker/feature_tracker.cpp)
-target_link_libraries(vins_lib ${catkin_LIBRARIES} ${OpenCV_LIBS} ${CERES_LIBRARIES})
+target_link_libraries(vins_lib ${catkin_LIBRARIES} ${OpenCV_LIBS} ${CERES_LIBRARIES} ${PCL_LIBRARIES})
 
 add_executable(processDepthmap src/processDepthMap.cpp)
 target_link_libraries(processDepthmap vins_lib  ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${CERES_LIBRARIES})
@@ -71,9 +68,6 @@ target_link_libraries(kitti_odom_test vins_lib)
 
 add_executable(kitti_gps_test src/KITTIGPSTest.cpp)
 target_link_libraries(kitti_gps_test vins_lib) 
-
-add_executable(kitti_Test src/kittiTest.cpp)
-target_link_libraries(kitti_Test vins_lib) 
 
 add_executable(ascanRegistration src/scanRegistration.cpp)
 target_link_libraries(ascanRegistration ${catkin_LIBRARIES} ${PCL_LIBRARIES})

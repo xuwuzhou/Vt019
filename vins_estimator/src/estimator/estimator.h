@@ -21,10 +21,10 @@
 #include <eigen3/Eigen/Dense>
 #include <eigen3/Eigen/Geometry>
 #include <pcl/point_cloud.h>
-#include<pcl/point_types.h>
+#include <pcl/point_types.h>
 #include <pcl/filters/voxel_grid.h>
 #include <pcl/kdtree/kdtree_flann.h>
-#include<pcl_conversions/pcl_conversions.h>
+#include <pcl_conversions/pcl_conversions.h>
 
 #include "parameters.h"
 #include "feature_manager.h"
@@ -54,15 +54,25 @@ class Estimator
    
     int depthCloudNum = 0;
     //这个kdtree存放将点云投影到图像平面的数据
+    //pcl::PointCloud<pcl::PointXYZI>::Ptr test1 = new pcl::PointCloud<pcl::PointXYZI>;
+//pcl::PointCloud<pcl::PointXYZ>::Ptr test (new pcl::PointCloud<pcl::PointXYZ>);
+//pcl::KdTreeFLANN<pcl::PointXYZ>::Ptr tree2 = new pcl::KdTreeFLANN<pcl::PointXYZ> ();
+
+    std::vector<int> pointSearchInd;
+    std::vector<float> pointSearchSqrDis;
+//    pcl::KdTreeFLANN<pcl::PointXYZI> KdTreeNOPtr;
     pcl::KdTreeFLANN<pcl::PointXYZI>::Ptr KdTree;
+    //KdTree.setInputCloud(test1);
      
     //这个pcl点云数据将sensor::msg转成pcl数据
+    //pcl::PointCloud<pcl::PointXYZI> test2 = new pcl::PointCloud<pcl::PointXYZI>();
+//    pcl::PointCloud<pcl::PointXYZI> depthCloudNOPtr;
     pcl::PointCloud<pcl::PointXYZI>::Ptr depthCloud;
-    
 //(new pcl::PointCloud<pcl::PointXYZI>())
     //这个函数起到了将点云投影到图像平面的作用
     void depthCloudproj(const sensor_msgs::PointCloud2ConstPtr& depthCloud2);
-
+    //从点云中获取对应特征点的深度
+   void getDepthFromLidar();
     // interface
     void initFirstPose(Eigen::Vector3d p, Eigen::Matrix3d r);
     void inputIMU(double t, const Vector3d &linearAcceleration, const Vector3d &angularVelocity);
@@ -75,7 +85,7 @@ class Estimator
 
     // internal
 
-//    void geiDepthFromlidar();//执行从雷达深度图中获取深度的操作
+    
 
     void clearState();
     bool initialStructure();

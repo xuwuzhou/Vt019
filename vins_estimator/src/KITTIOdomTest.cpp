@@ -37,9 +37,13 @@ Eigen::Matrix3d c1Rc0, c0Rc1;
 Eigen::Vector3d c1Tc0, c0Tc1;
 queue<sensor_msgs::ImageConstPtr> img0_buf;
 queue<sensor_msgs::ImageConstPtr> img1_buf;
-queue<sensor_msgs::PointCloud2Ptr> depth_cloudBuf;
+queue<sensor_msgs::PointCloud2ConstPtr> depth_cloudBuf;
+pcl::PointCloud<pcl::PointXYZI>::Ptr countCloud(new pcl::PointCloud<pcl::PointXYZI>());
 std::mutex m_buf;
 int num,num0,num1; 
+int num3,num4;
+int System_count = 0;
+bool System_inited =false;
 
 cv::Mat getImageFromMsg(const sensor_msgs::ImageConstPtr &img_msg)
 {
@@ -63,11 +67,20 @@ cv::Mat getImageFromMsg(const sensor_msgs::ImageConstPtr &img_msg)
     return img;
 }
 
-void depthCloud_callback(const sensor_msgs::PointCloud2Ptr &depth_cloud)
+void depthCloud_callback(const sensor_msgs::PointCloud2ConstPtr &depth_cloud)
 {
+	if(!System_inited){
+		System_count++;
+		if(System_count>=21){System_inited = true;}
+		else{return;}
+	}
 	m_buf.lock();
+	if(depth_cloud==NULL){num3++;printf("深度图%d空指针",num3);}
+	else {num4++;printf("指针%d非空",num4);}
+	if(depth_cloud!=NULL)
 	depth_cloudBuf.push(depth_cloud);
-	m_buf.lock();
+	if(depth_cloudBuf.empty())printf("深度图队列空");
+	m_buf.unlock();
 }
 
 void callback(const sensor_msgs::ImageConstPtr &img_msg0,const sensor_msgs::ImageConstPtr &img_msg1)
@@ -107,6 +120,7 @@ void sync_process()
         {
             cv::Mat image0, image1;
             std_msgs::Header header;
+	    sensor_msgs::PointCloud2ConstPtr depthCloudtmp(new sensor_msgs::PointCloud2);
             double time = 0;
             m_buf.lock();
             if (!img0_buf.empty() && !img1_buf.empty())
@@ -121,14 +135,32 @@ void sync_process()
                     img0_buf.pop();
                     image1 = getImageFromMsg(img1_buf.front());
                     img1_buf.pop();
+//		    pcl::fromROSMsg(*depthCloudtmp,*countCloud);
+		    pcl::PointCloud<pcl::PointXYZI> laserCloudIn;
+		    if(System_count>=21&&depth_cloudBuf.size()>=1){
+		    depthCloudtmp = depth_cloudBuf.front();
+		    pcl::fromROSMsg(*depthCloudtmp,laserCloudIn);
+		    depth_cloudBuf.pop();
+		    printf("在主进程接收到深度图点云后开始计算点云大小");
+		    }
+		    else{
+			printf("在主进程接收到深度图点云后因为不符合条件，所以不进行类型转换");
+		    }
                     //printf("find img0 and img1\n");
+		   
+		   
+		    printf("该深度图点云的点的数量%d\n",laserCloudIn.points.size());
                 
             }
             m_buf.unlock();
-            if(!image0.empty()){
+            if(!image0.empty()&&depthCloudtmp!=NULL){
                 estimator.inputImage(time, image0, image1);
                 num++;
                 printf("将第%d左右帧送入里程计处理\n",num);}
+		//estimator.depthCloudproj(depth_cloudBuf.front());
+		//depth_cloudBuf.pop();
+		if(System_count>=21&&depthCloudtmp!=NULL)
+		estimator.depthCloudproj(depthCloudtmp);
         }
         else
         {

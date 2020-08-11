@@ -10,10 +10,20 @@
 #include "estimator.h"
 #include "../utility/visualization.h"
 
+
+
 Estimator::Estimator(): f_manager{Rs}
 {
     ROS_INFO("init begins");
     initThreadFlag = false;
+//    pcl::KdTreeFLANN<pcl::PointXYZI>::Ptr kdTr(new pcl::KdTreeFLANN<pcl::PointXYZI>);
+//    KdTreeNOPtr = *kdTr;
+//    KdTree(new pcl::KdTreeFLANN<pcl::PointXYZI>);
+    KdTree.reset(new pcl::KdTreeFLANN<pcl::PointXYZI>);//智能指针初始化
+//    pcl::PointCloud<pcl::PointXYZI>::Ptr depCl (new pcl::PointCloud<pcl::PointXYZI>);
+//    depthCloudNOPtr = *depCl;
+//    depthCloud(new pcl::PointCloud<pcl::PointXYZI>) ;
+    depthCloud.reset(new pcl::PointCloud<pcl::PointXYZI>);//智能指针初始化
     clearState();
 }
 
@@ -515,7 +525,7 @@ void Estimator::processImage(const map<int, vector<pair<int, Eigen::Matrix<doubl
         if(STEREO && !USE_IMU)
         {
             f_manager.initFramePoseByPnP(frame_count, Ps, Rs, tic, ric);
-//	    geiDepthFromlidar();
+
             f_manager.triangulate(frame_count, Ps, Rs, tic, ric);
             optimization();
 
@@ -547,7 +557,7 @@ void Estimator::processImage(const map<int, vector<pair<int, Eigen::Matrix<doubl
         TicToc t_solve;//优化所用的时间
         if(!USE_IMU)
             f_manager.initFramePoseByPnP(frame_count, Ps, Rs, tic, ric);
-//	    geiDepthFromlidar();
+	    getDepthFromLidar();
         f_manager.triangulate(frame_count, Ps, Rs, tic, ric);
         optimization();
         set<int> removeIndex;
@@ -1672,7 +1682,8 @@ void Estimator::updateLatestStates()
     mPropagate.unlock();
 }
 //将点云数据投影到图像平面
-void Estimator::depthCloudproj(const sensor_msgs::PointCloud2ConstPtr& depthCloud2)
+
+void Estimator::depthCloudproj(const sensor_msgs::PointCloud2ConstPtr &depthCloud2)
 {
 	double depthCloudTime = 0 ;
 	depthCloudTime = depthCloud2->header.stamp.toSec();
@@ -1689,22 +1700,39 @@ void Estimator::depthCloudproj(const sensor_msgs::PointCloud2ConstPtr& depthClou
 		}	
 	KdTree->setInputCloud(depthCloud);//这里可能huy
 	}
+//	double depthCloudTime = 0 ;
+//	depthCloudTime = depthCloud2->header.stamp.toSec();
+//	depthCloudNOPtr.clear();
+//	pcl::fromROSMsg(*depthCloud2,depthCloudNOPtr);
+//	depthCloudNum = depthCloudNOPtr.points.size();
+//	//将整个点云投影到焦距为单位距离=10的平面上
+//	if(depthCloudNum > 10){
+//		for(int i=0 ; i<depthCloudNum ; i++){
+//		depthCloudNOPtr.points[i].intensity = depthCloudNOPtr.points[i].z;
+//		depthCloudNOPtr.points[i].x *= 10/depthCloudNOPtr.points[i].z;
+//		depthCloudNOPtr.points[i].y *= 10/depthCloudNOPtr.points[i].z;
+//		depthCloudNOPtr.points[i].z = 10;		
+//		}	
+//	//KdTreeNOPtr.setInputCloud(depthCloudNOPtr.makeShared());//这里可能huy
+//	}
 	
 }
+
 //执行从雷达深度图中获取深度的操作
-/*
-void Estimator::geiDepthFromlidar()
+
+void Estimator::getDepthFromLidar()
 {
 	pcl::PointXYZI ips;
 	pcl::PointXYZHSV ipr;
-	ipr.x = featureBuf.front().second.u;
-	ipr.y = featureBuf.front().second.v;
+	for (auto &it_per_id : f_manager.feature){//对于所有的特征点
+	ipr.x = it_per_id.feature_per_frame[0].point.head(2)[0];
+	ipr.y = it_per_id.feature_per_frame[0].point.head(2)[1];
 	ips.x = 10 * ipr.x;
 	ips.y = 10 * ipr.y;
 	ips.z = 10;
 	if(depthCloudNum)
 	{
-		kdTree->nearestKSearch(ips, 3, pointSearchInd, pointSearchSqrDis);
+		KdTree->nearestKSearch(ips, 3, pointSearchInd, pointSearchSqrDis);
  
         double minDepth, maxDepth;
         //查询到的足够近（距离小于0.707米）
@@ -1756,6 +1784,9 @@ void Estimator::geiDepthFromlidar()
         ipr.s = 0;
         ipr.v = 0;
       }
-	f_manager.feature.get(f_manager.feature.size()-1).estimated_depth = ipr.s;
+	it_per_id.estimated_depth=ipr.s;
+	}
+	
+//	f_manager.feature.get(f_manager.feature.size()-1).estimated_depth = ipr.s;
 
-}*/
+}
