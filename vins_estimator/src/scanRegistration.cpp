@@ -50,12 +50,18 @@
 #include <ros/ros.h>
 #include <sensor_msgs/Imu.h>
 #include <sensor_msgs/PointCloud2.h>
+#include <sensor_msgs/PointCloud.h>
+#include <sensor_msgs/point_cloud_conversion.h>
 #include <tf/transform_datatypes.h>
 #include <tf/transform_broadcaster.h>
 
 using std::atan2;
 using std::cos;
 using std::sin;
+
+//测试用
+int z_1_nums_sum = 0;
+int z_2_nums_sum = 0;
 
 const double scanPeriod = 0.1;
 //初始化控制变量
@@ -132,6 +138,23 @@ void laserCloudHandler(const sensor_msgs::PointCloud2ConstPtr &laserCloudMsg)
     std::vector<int> scanEndInd(N_SCANS, 0);
 
     pcl::PointCloud<pcl::PointXYZ> laserCloudIn;
+//    for(int i=0;i<laserCloudMsg->points.size();i++){
+//    printf("打印输出sensormsg的点云信息x=%d,y=%d,z=%d",laserCloudMsg->fields[0],laserCloudMsg->fields[1],laserCloudMsg->fields[2]);
+//    
+//    }
+    sensor_msgs::PointCloud output_pointCLoud;
+    sensor_msgs::convertPointCloud2ToPointCloud(*laserCloudMsg,output_pointCLoud);
+
+//从这往下
+//	int z_1_nums=0;
+//	for(int i=0;i<output_pointCLoud.points.size();i++){
+//	if(output_pointCLoud.points[i].z!=0){z_1_nums++;z_1_nums_sum++;}	
+//	}
+//	printf("在这一帧中获得的点云的数据z值非0的数量有%d\n",z_1_nums);
+//	printf("累计在初始点云中获得的点云数据z值非0数量有%d\n",z_1_nums_sum);
+	 
+//    }//从这里到上面的注释，可以删除
+
     pcl::fromROSMsg(*laserCloudMsg, laserCloudIn); //消息转换成pcl数据存放
     std::vector<int> indices;
 
@@ -163,10 +186,11 @@ void laserCloudHandler(const sensor_msgs::PointCloud2ConstPtr &laserCloudMsg)
     PointType point;
     std::vector<pcl::PointCloud<PointType>> laserCloudScans(N_SCANS);
     for (int i = 0; i < cloudSize; i++)
-    {//坐标轴交换，velodyne lidar的坐标系也转换到z轴向前，x轴向左的右手坐标系
+    {//坐标轴交换，velodyne lidar的坐标系也转换到z轴向前，x轴向左的右手坐标系?
         point.x = laserCloudIn.points[i].x;
         point.y = laserCloudIn.points[i].y;
         point.z = laserCloudIn.points[i].z;
+//	printf("验证：loam里面接收到的激光点云的点信息x=%d,y=%d,z=%d",point.x,point.y,point.z);
          //计算点的仰角(根据lidar文档垂直角计算公式),根据仰角排列激光线号，velodyne每两个scan之间间隔2度
         float angle = atan(point.z / sqrt(point.x * point.x + point.y * point.y)) * 180 / M_PI;
         int scanID = 0;
@@ -257,6 +281,16 @@ void laserCloudHandler(const sensor_msgs::PointCloud2ConstPtr &laserCloudMsg)
         *laserCloud += laserCloudScans[i];
         scanEndInd[i] = laserCloud->size() - 6;
     }
+
+    //这里可以删除
+//    int z_2_nums = 0;
+//	for(int i=0;i<laserCloud->size();i++){
+//	if(laserCloud->points[i].z!=0){z_2_nums++;z_2_nums_sum++;}
+//	}
+//	printf("处理后在这一帧中获得的点云的数据z值非0的数量有%d\n",z_2_nums);
+//	printf("处理后累计在初始点云中获得的点云数据z值非0数量有%d\n",z_2_nums_sum);
+
+ //   	
 
     printf("prepare time %f \n", t_prepare.toc());
 

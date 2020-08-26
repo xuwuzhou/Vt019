@@ -128,7 +128,7 @@ void voDataHandler(const nav_msgs::Odometry::ConstPtr& voData)
 
 	double pointDis = sqrt(point.x *point.x +point.y*point.y+point.z*point.z);
 	double timeDis = time -initTime- point.intensity;
-	if(pointDis<15){
+	if(pointDis<50){
 	tempCloud->push_back(point);	
 	}
 	}	
@@ -236,6 +236,7 @@ void syncCloudHandler(const sensor_msgs::PointCloud2ConstPtr& syncCloud2)
 	point.y = syncCloud->points[i].y;
 	point.z = syncCloud->points[i].z;
 	point.intensity = timeLasted;
+	if(point.x<0)continue;
 
 	//把插值得到的坐标系下的点转换到voRegInd指向的那一帧
 	x1 = cosry2*point.x - sinry2*point.z;
@@ -285,7 +286,7 @@ void syncCloudHandler(const sensor_msgs::PointCloud2ConstPtr& syncCloud2)
 	}	
 	}
 	double pointDis = sqrt(point.x*point.x+point.y*point.y+point.z*point.z);
-	if(pointDis <15){
+	if( pointDis>0.5&&pointDis <50){
 	depthCloud->push_back(point);	
 	}
 	}
@@ -303,4 +304,3 @@ int main(int argc, char **argv)
 	ros::spin();
 	return 0;
 }
-

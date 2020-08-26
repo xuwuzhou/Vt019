@@ -1694,11 +1694,11 @@ void Estimator::depthCloudproj(const sensor_msgs::PointCloud2ConstPtr &depthClou
 	if(depthCloudNum > 10){
 		for(int i=0 ; i<depthCloudNum ; i++){
 		depthCloud->points[i].intensity = depthCloud->points[i].z;
-		depthCloud->points[i].x *= 10/depthCloud->points[i].z;
-		depthCloud->points[i].y *= 10/depthCloud->points[i].z;
+		depthCloud->points[i].x *= 10;
+		depthCloud->points[i].y *= 10;
 		depthCloud->points[i].z = 10;		
 		}	
-	KdTree->setInputCloud(depthCloud);//这里可能huy
+	KdTree->setInputCloud(depthCloud);//这里可能会有问题
 	}
 //	double depthCloudTime = 0 ;
 //	depthCloudTime = depthCloud2->header.stamp.toSec();
@@ -1730,31 +1730,31 @@ void Estimator::getDepthFromLidar()
 	ips.x = 10 * ipr.x;
 	ips.y = 10 * ipr.y;
 	ips.z = 10;
-	if(depthCloudNum)
+	if(depthCloudNum > 10)
 	{
 		KdTree->nearestKSearch(ips, 3, pointSearchInd, pointSearchSqrDis);
  
         double minDepth, maxDepth;
         //查询到的足够近（距离小于0.707米）
-        if (pointSearchSqrDis[0] < 0.5 && pointSearchInd.size() == 3) {
+        if (pointSearchSqrDis[0] < 0.1 && pointSearchInd.size() == 3) {
           //查找的依据是投影后的点，而我们现在要找到相对应的深度图原有的点！intensity存储的是原有的z值
           pcl::PointXYZI depthPoint = depthCloud->points[pointSearchInd[0]];
-          double x1 = depthPoint.x * depthPoint.intensity / 10;
-          double y1 = depthPoint.y * depthPoint.intensity / 10;
+          double x1 = depthPoint.x / 10;
+          double y1 = depthPoint.y / 10;
           double z1 = depthPoint.intensity;
           minDepth = z1;
           maxDepth = z1;
  
           depthPoint = depthCloud->points[pointSearchInd[1]];
-          double x2 = depthPoint.x * depthPoint.intensity / 10;
-          double y2 = depthPoint.y * depthPoint.intensity / 10;
+          double x2 = depthPoint.x / 10;
+          double y2 = depthPoint.y / 10;
           double z2 = depthPoint.intensity;
           minDepth = (z2 < minDepth)? z2 : minDepth;
           maxDepth = (z2 > maxDepth)? z2 : maxDepth;
  
           depthPoint = depthCloud->points[pointSearchInd[2]];
-          double x3 = depthPoint.x * depthPoint.intensity / 10;
-          double y3 = depthPoint.y * depthPoint.intensity / 10;
+          double x3 = depthPoint.x / 10;
+          double y3 = depthPoint.y / 10;
           double z3 = depthPoint.intensity;
           minDepth = (z3 < minDepth)? z3 : minDepth;
           maxDepth = (z3 > maxDepth)? z3 : maxDepth;//求得三点中的最大与最小深度
